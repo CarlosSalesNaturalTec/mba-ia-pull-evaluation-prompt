@@ -22,7 +22,6 @@ load_dotenv()
 PROMPT_NAME = "leonanluppi/bug_to_user_story_v1"
 OUTPUT_PATH = "prompts/bug_to_user_story_v1.yml"
 
-
 def extract_prompt_fields(client: Client, prompt_name: str) -> dict:
     """Combina pull_prompt + get_prompt para montar o dict no formato alvo."""
     template = client.pull_prompt(prompt_name)
