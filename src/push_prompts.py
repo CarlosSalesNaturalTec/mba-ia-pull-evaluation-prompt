@@ -26,14 +26,40 @@ def push_prompt_to_langsmith(prompt_name: str, prompt_data: dict) -> bool:
     Faz push do prompt otimizado para o LangSmith Hub (PÚBLICO).
 
     Args:
-        prompt_name: Nome do prompt
-        prompt_data: Dados do prompt
+        prompt_name: Identificador no Hub (ex.: "bug_to_user_story_v2" ou "owner/bug_to_user_story_v2")
+        prompt_data: Dados do prompt (system_prompt, user_prompt, description, tags, ...)
 
     Returns:
         True se sucesso, False caso contrário
     """
-    print("   [MOCK] Simulando push para LangSmith Hub...")
-    return True
+    try:
+        client = Client()
+
+        template = ChatPromptTemplate.from_messages([
+            ("system", prompt_data["system_prompt"]),
+            ("human", prompt_data["user_prompt"]),
+        ])
+
+        tags = list(prompt_data.get("tags") or [])
+        techniques = prompt_data.get("techniques_applied") or []
+        readme = (
+            f"Técnicas aplicadas: {', '.join(techniques)}" if techniques else None
+        )
+
+        url = client.push_prompt(
+            prompt_name,
+            object=template,
+            description=prompt_data.get("description") or "",
+            tags=tags,
+            readme=readme,
+            is_public=True,
+        )
+        print(f"   URL: {url}")
+        return True
+    except Exception as e:
+        print(f"   ❌ Erro no push: {e}")
+        return False
+    
 
 def main():
     """Função principal"""
@@ -59,11 +85,9 @@ def main():
         return 1
     print("  - Ok ✅") 
 
-    print("Iniciando push...")
-    success = push_prompt_to_langsmith(PROMPT_NAME, prompt_data)
-    if not success:
-        print("❌ Falha ao realizar Push.")
-        return 1
+    print("4 - Iniciando push...")
+    success = push_prompt_to_langsmith(prompt_key, prompt_data)
+    if not success: return 1
 
     print("  - Ok ✅ Push realizado com sucesso!")
 
