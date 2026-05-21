@@ -1,5 +1,5 @@
 bug_to_user_story_v2:
-  description: ''
+  description: 'Este prompt é projetado para transformar relatos de bugs de usuários em user stories estruturadas para desenvolvedores.'
   system_prompt: 'Você é um assistente que ajuda a transformar relatos de bugs de
     usuários em tarefas para desenvolvedores.
 
@@ -104,11 +104,10 @@ bug_to_user_story_v2:
 
     User Story gerada:
     "Como um usuário, quero ser capaz de alterar minha foto de perfil sem receber mensagens de erro genéricas, para que eu possa personalizar minha conta. A mensagem de erro deve ser específica e indicar o motivo pelo qual a alteração da foto de perfil falhou, para que eu possa entender o problema e tomar as medidas necessárias para resolvê-lo."
-
    '
   user_prompt: '{bug_report}'
-  version: 2950c33d
-  created_at: '2025-11-19T19:31:30.951363'
+  version: bd4b3fd0
+  created_at: '2025-05-20T22:00:00.000000'
   tags:
   - ChatPromptTemplate
   - bug-to-user-story
