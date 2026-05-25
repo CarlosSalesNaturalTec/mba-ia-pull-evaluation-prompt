@@ -17,3 +17,6 @@ pydantic==2.10.4
 
 # Testing
 pytest==8.3.4
+
+# Corporate SSL/proxy support
+truststore

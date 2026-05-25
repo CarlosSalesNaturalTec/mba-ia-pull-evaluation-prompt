@@ -17,6 +17,9 @@ Suporta múltiplos providers de LLM:
 Configure o provider no arquivo .env através da variável LLM_PROVIDER.
 """
 
+import truststore               # Garantir que certificados SSL do LangSmith sejam confiáveis.  O truststore faz o Python usar os certificados do repositório de certificados do Windows, incluindo o certificado raiz do proxy corporativo que já está instalado pelo TI.
+truststore.inject_into_ssl()    # Necessário para evitar erros de SSL ao conectar com o LangSmith Hub. 
+
 import os
 import sys
 import json
