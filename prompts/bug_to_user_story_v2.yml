@@ -27,11 +27,29 @@ bug_to_user_story_v2:
       Traduza internamente e prossiga normalmente.
 
    REGRAS FUNDAMENTAIS:
-   - Preserve todos os dados técnicos e numéricos do relato original (endpoints, HTTP codes, logs, métricas, valores, identificadores). Nunca invente informações ausentes no relato.
-   - PRINCÍPIO DO MINIMALISMO: gere apenas o conteúdo justificado pelos dados presentes no relato. Conteúdo extra (seções, critérios, sub-perfis, exemplos) que não derive diretamente do relato é considerado ruído e deve ser omitido.
-   - EXTRAÇÃO EXAUSTIVA SEM INVENÇÃO: toda informação técnica concreta presente no relato (algoritmos sugeridos, bibliotecas, protocolos, parâmetros numéricos, identificadores, padrões arquiteturais, fases/sprints, métricas de impacto) DEVE aparecer na saída em alguma seção apropriada. Não invente o que não está lá, mas também NÃO omita o que está. A diferença entre "minimalismo" e "omissão" é: minimalismo = não adicionar nada além do relato; omissão = perder algo que o relato disse.
-   - CRITÉRIOS COBREM APENAS O QUE FOI DITO: nunca adicione critério "complementar por simetria" (ex.: se o relato cita só o cenário inválido, não invente o cenário válido). Cubra estritamente os cenários, comportamentos esperados e validações que aparecem no relato.
+   - DADOS LITERAIS DO RELATO SÃO IMUTÁVEIS: números, IDs, endpoints, logs, valores monetários, métricas numéricas explicitamente citadas DEVEM ser preservados sem alteração nem contradição. Use esses dados literalmente.
+   - ENRIQUECIMENTO TÉCNICO RECONHECIDO É ESPERADO E NECESSÁRIO: para bugs MÉDIOS e COMPLEXOS, COMPLEMENTE a saída com padrões, bibliotecas, algoritmos, headers e patterns RECONHECIDOS da indústria que se aplicam ao tipo de bug — mesmo que o relato não os mencione explicitamente. Consulte o "CATÁLOGO DE ENRIQUECIMENTO" abaixo. Saída sem enriquecimento técnico em bugs médios/complexos é considerada incompleta.
+   - REPLICAÇÃO DE EXEMPLOS: se o relato corresponde diretamente a um dos EXEMPLOS abaixo (mesmo cenário, mesmo tipo de bug), REPLIQUE o padrão completo do exemplo — incluindo critérios de acessibilidade, prevenção, contextos extras. Não simplifique.
+   - CRITÉRIOS BDD ESPECÍFICOS: cada "E ..." deve descrever um comportamento, mensagem ou validação concreta. Se o relato cita uma falha visível ao usuário (loading infinito, bloqueio, validação), inclua critérios que cubram: (a) o caminho feliz, (b) a mensagem específica esperada ("Processando pagamento...", "estoque limitado", etc.), (c) fallbacks/timeouts explícitos.
    - CALIBRAÇÃO PELA COMPLEXIDADE: ajuste a profundidade da saída ao tamanho/detalhe do relato. Relato curto = saída curta. Relato extenso e multi-problema = saída estruturada.
+
+   CATÁLOGO DE ENRIQUECIMENTO (use os patterns abaixo quando o tipo de bug se encaixar):
+
+   - Segurança / XSS / Sanitização: cite DOMPurify ou equivalente; adicione Content Security Policy headers; classifique como OWASP A03:2021 (Injection); valide no backend (defesa em profundidade).
+   - Segurança / Controle de Acesso / Permissões: classifique como OWASP A01:2021 (Broken Access Control); inclua "log de auditoria" como critério; sugira "middleware de autorização" em CONTEXTO DE SEGURANÇA.
+   - Performance Backend / Query lenta: cite eager loading com JOIN, índices compostos, materialized views; sugira APM/monitoramento de slow queries.
+   - Performance Mobile Android: cite RecyclerView com ViewHolder pattern, paginação (carregar 20 itens por vez), scroll infinito, background thread; defina meta de tempo agressiva (< 2 segundos).
+   - Concorrência / Race condition em DB: cite SELECT FOR UPDATE, lock otimista/pessimista, transação com nível de isolamento adequado, Redis INCR atômico como alternativa, idempotency key.
+   - Cache / Dados desatualizados: cite invalidação por eventos, TTL adaptativo, estratégia híbrida (tempo real / cache curto / cache longo).
+   - Integração / Webhook / Gateway: cite retry com exponential backoff, circuit breaker, timeout configurado, idempotência, polling de status, webhook assíncrono.
+   - Upload de arquivos grandes: cite chunked upload, checkpoints a cada N MB, resumable uploads, progress tracking.
+   - Sincronização offline / Conflitos: cite CRDTs (Conflict-free Replicated Data Types) e/ou vector clocks; estratégia híbrida (auto-merge para campos independentes, manual para conflitantes); histórico de versões para rollback.
+   - Memória / Crash mobile: cite processamento em lotes (50 itens), liberação de memória entre lotes, streaming (cursor SQLite), force GC, limite de memória explícito (< 500MB).
+   - Modal / UI overlay: inclua critérios de backdrop (menu fica desfocado), largura responsiva (≥ 90% em mobile), z-index correto, E SEMPRE uma seção "Critérios de Acessibilidade:" com foco do teclado, ESC para fechar, e clique no backdrop fecha.
+   - Validação / Mensagens ao usuário: critérios devem citar a mensagem específica esperada e o efeito ("deve explicar o formato correto", "deve sugerir remover o item", "deve receber email de confirmação", "deve exibir mensagem clara").
+   - Exportação / Background jobs / Relatórios pesados: cite job queue (Sidekiq, Bull, ou equivalente), streaming de CSV, processamento em chunks, notificação ao concluir.
+   - Bugs COMPLEXOS de arquitetura: inclua subseção "App Architecture:" ou "Múltiplos Componentes Afetados:" no CONTEXTO DO BUG identificando frontend/backend/infra/integração. Organize TASKS em fases/sprints temporais (Hotfix Urgente / Core Fixes / Robust Architecture / Scale & Polish).
+   - Todos os bugs com SLA/KPI/NPS no relato: inclua seção "=== MÉTRICAS DE SUCESSO ===" com formato "métrica: atual → esperado".
 
    CLASSIFICAÇÃO DE COMPLEXIDADE (avalie ANTES de gerar a saída):
 
@@ -55,8 +73,8 @@ bug_to_user_story_v2:
    - Quando [ação]
    - Então [resultado esperado]
    - E [critério adicional]
-   (4-6 itens. Use "Critérios Adicionais para [perfil]:" APENAS se o relato citar explicitamente dois perfis com comportamentos distintos.)
-   ATENÇÃO — cobrir SEM extrapolar: se o relato cita só o cenário inválido (ex.: "email sem @"), NÃO adicione um critério para o cenário válido. Cada critério "E ..." deve mapear a uma consequência/validação/mensagem que aparece explicitamente no relato. Se o relato sugere mensagem de erro ("deve explicar o formato correto", "deve sugerir remover o item", "deve receber email de confirmação"), inclua esse comportamento como critério dedicado — não condense em um único "E exibir mensagem apropriada".
+   (4-6 itens em SIMPLES; em MÉDIO/COMPLEXO pode chegar a 6-8 itens por sub-seção quando há critérios derivados do CATÁLOGO DE ENRIQUECIMENTO. Use "Critérios Adicionais para [perfil]:" APENAS se o relato citar explicitamente dois perfis com comportamentos distintos.)
+   REGRA DE COBERTURA: cada "E ..." deve descrever uma consequência, validação, mensagem ou comportamento concreto e testável. Para bugs de validação ou erro, inclua critérios específicos para mensagens visíveis ao usuário (ex.: "deve explicar o formato correto", "deve sugerir remover o item", "deve receber email de confirmação", "deve exibir aviso de estoque limitado"). Para bugs de UI com modal/overlay, sempre cubra backdrop, largura responsiva e acessibilidade. NÃO adicione cenário válido se o relato cita só o cenário inválido (ex.: para "email sem @" não exige critério para email válido).
 
    3. SEÇÕES ADICIONAIS — APENAS para bugs MÉDIOS ou COMPLEXOS, e somente se o relato trouxer os dados específicos abaixo. NÃO adicione seção se o gatilho não estiver presente no relato:
    - "Contexto Técnico:" → quando o relato traz a CAUSA RAIZ técnica em forma de diagnóstico (ex.: "falta de índice", "z-index do modal < menu", "endpoint retorna HTTP 500"). Sumariza o diagnóstico em bullets curtos.
@@ -103,7 +121,15 @@ bug_to_user_story_v2:
    [antes vs. depois mensurável, ex.: "Tempo de resposta: 45s → < 3s"]
 
    REGRA DE EXAUSTIVIDADE PARA BUGS COMPLEXOS:
-   Antes de finalizar a saída, varra mentalmente o relato e CONFIRA: cada problema citado (numerado, seccionado ou destacado) deve aparecer em TRÊS lugares — pelo menos um critério BDD em "=== CRITÉRIOS DE ACEITAÇÃO ===" (em sua sub-seção A./B./C./D.), pelo menos uma entrada de implementação em "=== CRITÉRIOS TÉCNICOS ===", e pelo menos uma task em "=== TASKS TÉCNICAS SUGERIDAS ===". Se o relato traz exemplos concretos (queries SQL, stack traces, payloads, valores numéricos, nomes de bibliotecas/patterns), preserve-os literalmente nos "=== CRITÉRIOS TÉCNICOS ===" — não substitua por paráfrase genérica. Bibliotecas, protocolos, algoritmos e padrões arquiteturais sugeridos no relato (ex.: "Sidekiq", "CRDTs", "exponential backoff", "RecyclerView com ViewHolder", "materialized views", "Content Security Policy") DEVEM aparecer na saída por nome.
+   Antes de finalizar a saída, varra mentalmente o relato e CONFIRA:
+
+   1. COBERTURA TRIPLA: cada problema citado (numerado, seccionado ou destacado) deve aparecer em TRÊS lugares — pelo menos um critério BDD em "=== CRITÉRIOS DE ACEITAÇÃO ===" (em sua sub-seção A./B./C./D.), pelo menos uma entrada em "=== CRITÉRIOS TÉCNICOS ===", e pelo menos uma task em "=== TASKS TÉCNICAS SUGERIDAS ===".
+
+   2. PRESERVAÇÃO LITERAL + ENRIQUECIMENTO: se o relato traz exemplos concretos (queries SQL, stack traces, payloads, valores numéricos, IDs, endpoints), preserve-os literalmente em "=== CRITÉRIOS TÉCNICOS ===". Adicionalmente, ENRIQUEÇA com os padrões do CATÁLOGO acima — para cada categoria de problema identificada, adicione os patterns/bibliotecas/algoritmos correspondentes por nome (CRDTs, vector clocks, exponential backoff, circuit breaker, DOMPurify, SELECT FOR UPDATE, Redis INCR, Sidekiq, RecyclerView com ViewHolder, materialized views, Content Security Policy, idempotency key, etc.).
+
+   3. SUBSEÇÕES DO CONTEXTO DO BUG: em "=== CONTEXTO DO BUG ===" inclua "App Architecture:" ou "Múltiplos Componentes Afetados:" mapeando frontend/backend/integração/infra. Inclua "Problemas Identificados:" como lista numerada espelhando os problemas do relato. Para bugs de segurança, anote o código OWASP correspondente.
+
+   4. FASEAMENTO DE TASKS: organize "=== TASKS TÉCNICAS SUGERIDAS ===" em fases/sprints temporais quando houver mais de 3 problemas (Hotfix Urgente / Core Fixes / Robust Architecture / Scale & Polish), com duração estimada por fase.
 
    EXEMPLOS:
 
