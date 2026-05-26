@@ -23,6 +23,7 @@ truststore.inject_into_ssl()    # Necessário para evitar erros de SSL ao conect
 import os
 import sys
 import json
+from datetime import datetime
 from typing import List, Dict, Any
 from pathlib import Path
 from dotenv import load_dotenv
@@ -181,6 +182,90 @@ def evaluate_prompt_on_example(
         }
 
 
+def write_debug_report(
+    prompt_name: str,
+    debug_entries: List[Dict[str, Any]],
+    total_examples: int,
+    output_dir: str = "debug_logs"
+) -> str:
+    if not debug_entries:
+        return ""
+
+    out_dir = Path(output_dir)
+    out_dir.mkdir(exist_ok=True)
+
+    now = datetime.now()
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
+    safe_name = prompt_name.replace("/", "_").replace(":", "_")
+    output_path = out_dir / f"{timestamp}_{safe_name}.md"
+
+    lines: List[str] = [
+        f"# Debug de Avaliação — `{prompt_name}`",
+        "",
+        f"**Data:** {now.strftime('%Y-%m-%d %H:%M:%S')}  ",
+        f"**Total de exemplos avaliados:** {total_examples}  ",
+        f"**Exemplos abaixo do threshold (0.9):** {len(debug_entries)}",
+        "",
+        "## Resumo dos exemplos reprovados",
+        "",
+        "| # | F1 | P (do F1) | R (do F1) | Clarity | Precision |",
+        "|---|------|------|------|------|------|",
+    ]
+    for e in debug_entries:
+        lines.append(
+            f"| {e['index']} | {e['f1']:.2f} | {e['f1_precision']:.2f} | "
+            f"{e['f1_recall']:.2f} | {e['clarity']:.2f} | {e['precision']:.2f} |"
+        )
+    lines.extend(["", "---", ""])
+
+    for e in debug_entries:
+        lines.append(f"## Exemplo #{e['index']}")
+        lines.append("")
+        lines.append("**Scores:**")
+        lines.append("")
+        lines.append(f"- F1: `{e['f1']:.2f}` (Precision: `{e['f1_precision']:.2f}` · Recall: `{e['f1_recall']:.2f}`)")
+        lines.append(f"- Clarity: `{e['clarity']:.2f}`")
+        lines.append(f"- Precision: `{e['precision']:.2f}`")
+        lines.append("")
+        lines.append("**Reasoning F1:**")
+        lines.append("")
+        lines.append(e['f1_reasoning'] or "_(vazio)_")
+        lines.append("")
+        if e['precision'] < 0.9:
+            lines.append("**Reasoning Precision:**")
+            lines.append("")
+            lines.append(e['precision_reasoning'] or "_(vazio)_")
+            lines.append("")
+        if e['clarity'] < 0.9:
+            lines.append("**Reasoning Clarity:**")
+            lines.append("")
+            lines.append(e['clarity_reasoning'] or "_(vazio)_")
+            lines.append("")
+        lines.append("### Input (bug_report)")
+        lines.append("")
+        lines.append("````")
+        lines.append(e['question'])
+        lines.append("````")
+        lines.append("")
+        lines.append("### Answer (gerado pelo prompt)")
+        lines.append("")
+        lines.append("````")
+        lines.append(e['answer'])
+        lines.append("````")
+        lines.append("")
+        lines.append("### Reference (esperado)")
+        lines.append("")
+        lines.append("````")
+        lines.append(e['reference'])
+        lines.append("````")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    output_path.write_text("\n".join(lines), encoding='utf-8')
+    return str(output_path)
+
+
 def evaluate_prompt(
     prompt_name: str,
     dataset_name: str,
@@ -202,6 +287,10 @@ def evaluate_prompt(
 
         print("   Avaliando exemplos...")
 
+        debug_below_threshold = os.getenv("DEBUG_LOW_SCORES", "1") == "1"
+        save_debug_md = os.getenv("DEBUG_SAVE_MD", "1") == "1"
+        debug_entries: List[Dict[str, Any]] = []
+
         for i, example in enumerate(examples, 1):
             result = evaluate_prompt_on_example(prompt_template, example, llm)
 
@@ -215,6 +304,43 @@ def evaluate_prompt(
                 precision_scores.append(precision["score"])
 
                 print(f"      [{i}/{len(examples)}] F1:{f1['score']:.2f} Clarity:{clarity['score']:.2f} Precision:{precision['score']:.2f}")
+
+                below_threshold = f1["score"] < 0.9 or precision["score"] < 0.9 or clarity["score"] < 0.9
+
+                if below_threshold and debug_below_threshold:
+                    print(f"      {'─' * 60}")
+                    print(f"      [DEBUG #{i}] Métricas abaixo de 0.9 — diagnóstico:")
+                    print(f"      F1={f1['score']:.2f}  (P={f1.get('precision', 0):.2f}  R={f1.get('recall', 0):.2f})")
+                    print(f"      Reasoning F1: {f1.get('reasoning', '')}")
+                    if precision["score"] < 0.9:
+                        print(f"      Reasoning Precision: {precision.get('reasoning', '')}")
+                    if clarity["score"] < 0.9:
+                        print(f"      Reasoning Clarity: {clarity.get('reasoning', '')}")
+                    print(f"      ── ANSWER (primeiros 600 chars) ──")
+                    print(f"      {result['answer'][:600]}{'...' if len(result['answer']) > 600 else ''}")
+                    print(f"      ── REFERENCE (primeiros 600 chars) ──")
+                    print(f"      {result['reference'][:600]}{'...' if len(result['reference']) > 600 else ''}")
+                    print(f"      {'─' * 60}")
+
+                if below_threshold and save_debug_md:
+                    debug_entries.append({
+                        "index": i,
+                        "question": result["question"],
+                        "answer": result["answer"],
+                        "reference": result["reference"],
+                        "f1": f1["score"],
+                        "f1_precision": f1.get("precision", 0.0),
+                        "f1_recall": f1.get("recall", 0.0),
+                        "f1_reasoning": f1.get("reasoning", ""),
+                        "clarity": clarity["score"],
+                        "clarity_reasoning": clarity.get("reasoning", ""),
+                        "precision": precision["score"],
+                        "precision_reasoning": precision.get("reasoning", ""),
+                    })
+
+        if save_debug_md and debug_entries:
+            report_path = write_debug_report(prompt_name, debug_entries, len(examples))
+            print(f"\n   📝 Relatório de debug salvo em: {report_path}")
 
         avg_f1 = sum(f1_scores) / len(f1_scores) if f1_scores else 0.0
         avg_clarity = sum(clarity_scores) / len(clarity_scores) if clarity_scores else 0.0

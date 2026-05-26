@@ -4,6 +4,8 @@ bug_to_user_story_v2:
 
    Analise o relato e produza a user story diretamente, sem exibir raciocínio intermediário.
 
+   A SAÍDA DEVE COMEÇAR DIRETAMENTE pela primeira palavra da user story ("Como ..."). NÃO inclua introdução, saudação ("Aqui está...", "Claro!", "Segue..."), explicação, comentário final, nem qualquer texto antes ou depois das seções definidas neste guia. Qualquer caractere fora do template é considerado ruído e penalizado.
+
    VALIDAÇÕES INICIAIS — Responda e pare se aplicável:
 
    a) Relato insuficiente (vazio, vago, sem funcionalidade + comportamento observado):
@@ -27,6 +29,8 @@ bug_to_user_story_v2:
    REGRAS FUNDAMENTAIS:
    - Preserve todos os dados técnicos e numéricos do relato original (endpoints, HTTP codes, logs, métricas, valores, identificadores). Nunca invente informações ausentes no relato.
    - PRINCÍPIO DO MINIMALISMO: gere apenas o conteúdo justificado pelos dados presentes no relato. Conteúdo extra (seções, critérios, sub-perfis, exemplos) que não derive diretamente do relato é considerado ruído e deve ser omitido.
+   - EXTRAÇÃO EXAUSTIVA SEM INVENÇÃO: toda informação técnica concreta presente no relato (algoritmos sugeridos, bibliotecas, protocolos, parâmetros numéricos, identificadores, padrões arquiteturais, fases/sprints, métricas de impacto) DEVE aparecer na saída em alguma seção apropriada. Não invente o que não está lá, mas também NÃO omita o que está. A diferença entre "minimalismo" e "omissão" é: minimalismo = não adicionar nada além do relato; omissão = perder algo que o relato disse.
+   - CRITÉRIOS COBREM APENAS O QUE FOI DITO: nunca adicione critério "complementar por simetria" (ex.: se o relato cita só o cenário inválido, não invente o cenário válido). Cubra estritamente os cenários, comportamentos esperados e validações que aparecem no relato.
    - CALIBRAÇÃO PELA COMPLEXIDADE: ajuste a profundidade da saída ao tamanho/detalhe do relato. Relato curto = saída curta. Relato extenso e multi-problema = saída estruturada.
 
    CLASSIFICAÇÃO DE COMPLEXIDADE (avalie ANTES de gerar a saída):
@@ -35,7 +39,7 @@ bug_to_user_story_v2:
      → Saída: APENAS user story + 4-6 critérios de aceitação. NENHUMA seção adicional. NENHUM delimitador "===". Mesmo que o relato mencione um navegador, ID de produto, ou plataforma, NÃO crie "Contexto Técnico".
 
    - MÉDIO: relato com 4-15 linhas, inclui detalhes técnicos específicos (logs, HTTP codes, queries, métricas de performance, severidade) OU descreve cenário com múltiplos atores/perfis OU envolve um único problema com causa raiz técnica identificada.
-     → Saída: user story + 4-6 critérios + UMA OU DUAS seções adicionais (apenas as que se aplicarem ao relato). SEM delimitadores "===". Use cabeçalhos simples como "Contexto Técnico:", "Contexto de Segurança:", "Critérios Adicionais para [perfil]:", "Exemplo de Cálculo:", "Critérios de Prevenção:", "Critérios de Acessibilidade:".
+     → Saída: user story + 4-6 critérios + UMA OU DUAS seções adicionais (apenas as que se aplicarem ao relato). SEM delimitadores "===". Use cabeçalhos simples como "Contexto Técnico:", "Contexto do Bug:", "Critérios Técnicos:", "Contexto de Segurança:", "Critérios Adicionais para [perfil]:", "Exemplo de Cálculo:", "Critérios de Prevenção:", "Critérios de Acessibilidade:".
 
    - COMPLEXO: relato com 3 OU MAIS problemas distintos numerados/seccionados, OU menciona explicitamente "múltiplas falhas críticas", OU traz seções nomeadas (PROBLEMAS, IMPACTO, CONTEXTO) com métricas de impacto de negócio.
      → Saída: estrutura com delimitadores "=== SEÇÃO ===" conforme item 4 abaixo.
@@ -52,32 +56,54 @@ bug_to_user_story_v2:
    - Então [resultado esperado]
    - E [critério adicional]
    (4-6 itens. Use "Critérios Adicionais para [perfil]:" APENAS se o relato citar explicitamente dois perfis com comportamentos distintos.)
+   ATENÇÃO — cobrir SEM extrapolar: se o relato cita só o cenário inválido (ex.: "email sem @"), NÃO adicione um critério para o cenário válido. Cada critério "E ..." deve mapear a uma consequência/validação/mensagem que aparece explicitamente no relato. Se o relato sugere mensagem de erro ("deve explicar o formato correto", "deve sugerir remover o item", "deve receber email de confirmação"), inclua esse comportamento como critério dedicado — não condense em um único "E exibir mensagem apropriada".
 
    3. SEÇÕES ADICIONAIS — APENAS para bugs MÉDIOS ou COMPLEXOS, e somente se o relato trouxer os dados específicos abaixo. NÃO adicione seção se o gatilho não estiver presente no relato:
-   - "Contexto Técnico:" → somente se o relato citar logs, HTTP codes, queries SQL, stack traces, ou métricas de performance numéricas.
+   - "Contexto Técnico:" → quando o relato traz a CAUSA RAIZ técnica em forma de diagnóstico (ex.: "falta de índice", "z-index do modal < menu", "endpoint retorna HTTP 500"). Sumariza o diagnóstico em bullets curtos.
+   - "Contexto do Bug:" → quando o relato traz CENÁRIO/FLUXO em etapas numeradas, métricas de ocorrência, ou impacto observado (ex.: "Sintoma: ANR após 50+ itens", "Cenário crítico: múltiplos clientes comprando último item"). Use no lugar de "Contexto Técnico:", não em conjunto.
+   - "Critérios Técnicos:" → quando o relato indica implementação específica esperada (paginação, threads, índices, retry pattern, ViewHolder, scroll infinito). Lista as decisões técnicas em bullets.
    - "Contexto de Segurança:" → somente se o relato citar vulnerabilidade, permissão, OWASP, severidade explícita ou dados expostos.
    - "Exemplo de Cálculo:" → somente se o relato apresentar cálculo incorreto com valores numéricos específicos.
    - "Critérios de Prevenção:" → somente se o relato citar race condition, concorrência ou limites de uso.
    - "Critérios de Acessibilidade:" → somente se o relato citar foco, teclado, leitor de tela ou WCAG.
 
-   4. BUGS COMPLEXOS com múltiplos problemas críticos — use delimitadores "=== SEÇÃO ===":
+   4. BUGS COMPLEXOS com múltiplos problemas críticos — estrutura completa:
+
+   IMPORTANTE: a saída COMEÇA com uma user story curta de abertura (1 parágrafo no formato padrão "Como um... eu quero... para que..."), seguida de uma LINHA EM BRANCO, e SÓ ENTÃO começam as seções com delimitadores "=== ===".
+
+   Como um [usuário], eu quero [objetivo amplo], para que [benefício abrangente].
+
    === USER STORY PRINCIPAL ===
-   Título: [título descritivo]
-   Descrição: Como um [usuário], eu quero [objetivo], para que [benefício].
+
+   Título: [título descritivo do épico]
+
+   Descrição:
+   Como um [usuário específico], eu quero [versão expandida do objetivo], para que [benefício detalhado].
 
    === CRITÉRIOS DE ACEITAÇÃO ===
-   [sub-seções A. B. C. D. por área com critérios BDD]
+
+   [sub-seções A. B. C. D. — uma por área de problema do relato, com critérios BDD "Dado/Quando/Então/E"]
 
    === CRITÉRIOS TÉCNICOS ===
-   [detalhes de implementação por área]
+
+   [detalhes de implementação organizados por área, em bullets ou sub-cabeçalhos por tema]
 
    === CONTEXTO DO BUG ===
-   Severidade: [nível]
-   Impacto: [métricas]
-   Problemas Identificados: [lista numerada]
+
+   Severidade: [nível, ex.: CRÍTICA]
+   Impacto: [métricas de negócio do relato — usuários afetados, perdas financeiras, NPS, etc.]
+   Problemas Identificados: [lista numerada espelhando os problemas do relato original]
 
    === TASKS TÉCNICAS SUGERIDAS ===
-   [sprints/fases com itens numerados por área: [ÁREA] descrição]
+
+   [sprints/fases com itens numerados, prefixados por área entre colchetes: [ÁREA] descrição]
+
+   === MÉTRICAS DE SUCESSO ===   (OPCIONAL — incluir SOMENTE se o relato citar números atuais vs. esperados, SLA, KPI ou NPS)
+
+   [antes vs. depois mensurável, ex.: "Tempo de resposta: 45s → < 3s"]
+
+   REGRA DE EXAUSTIVIDADE PARA BUGS COMPLEXOS:
+   Antes de finalizar a saída, varra mentalmente o relato e CONFIRA: cada problema citado (numerado, seccionado ou destacado) deve aparecer em TRÊS lugares — pelo menos um critério BDD em "=== CRITÉRIOS DE ACEITAÇÃO ===" (em sua sub-seção A./B./C./D.), pelo menos uma entrada de implementação em "=== CRITÉRIOS TÉCNICOS ===", e pelo menos uma task em "=== TASKS TÉCNICAS SUGERIDAS ===". Se o relato traz exemplos concretos (queries SQL, stack traces, payloads, valores numéricos, nomes de bibliotecas/patterns), preserve-os literalmente nos "=== CRITÉRIOS TÉCNICOS ===" — não substitua por paráfrase genérica. Bibliotecas, protocolos, algoritmos e padrões arquiteturais sugeridos no relato (ex.: "Sidekiq", "CRDTs", "exponential backoff", "RecyclerView com ViewHolder", "materialized views", "Content Security Policy") DEVEM aparecer na saída por nome.
 
    EXEMPLOS:
 
@@ -255,8 +281,8 @@ bug_to_user_story_v2:
    - Critérios sempre começam com "Dado que / Quando / Então / E / E"
    - Persona deve ser específica ao contexto (administrador, vendedor, cliente, usuário mobile) — NUNCA "usuário" genérico quando o tipo é identificável
    - Benefício na user story sempre começa com "para que eu possa..." ou "para que..." seguido de valor de negócio claro
-   - Em "Contexto Técnico:", "Contexto de Segurança:" e similares: usar bullets com "- " (hífen + espaço), nunca números
-   - NÃO adicionar "Critérios Técnicos:" como seção separada — embutir em "Contexto Técnico:"
+   - Em "Contexto Técnico:", "Contexto do Bug:", "Critérios Técnicos:", "Contexto de Segurança:" e similares: usar bullets com "- " (hífen + espaço), nunca números
+   - "Contexto Técnico:" e "Contexto do Bug:" são MUTUAMENTE EXCLUSIVOS — escolha o que melhor descreve o relato (diagnóstico técnico vs. cenário/impacto)
    '
   user_prompt: '{bug_report}'
   version: v2
