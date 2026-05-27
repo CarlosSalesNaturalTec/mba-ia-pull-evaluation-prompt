@@ -378,30 +378,29 @@ A v2 é, portanto, uma evolução em **cinco frentes simultâneas** em relação
 
 **Tracing detalhado — exemplo 01**
 
-![Tracing 01](public/tracing_01.png)
+![Tracing 01](public/tracing_reasoning_01.png)
 
 **Tracing detalhado — exemplo 02**
 
-![Tracing 02](public/tracing_02.png)
+![Tracing 02](public/tracing_reasoning_02.png)
 
 **Tracing detalhado — exemplo 03**
 
-![Tracing 03](public/tracing_03.png)
+![Tracing 03](public/tracing_reasoning_03.png)
 
 ### Tabela comparativa — v1 (baseline) vs v2 (otimizado)
 
-> Valores extraídos da aba **Experiments** do LangSmith para o dataset `bug_to_user_story-eval` (15 exemplos). Substitua os placeholders pelos valores exatos das colunas agregadas nos screenshots `notas_bug_to_user_story_v1.png` e `notas_bug_to_user_story_v2.png`.
+> Valores médios sobre os **15 exemplos** do dataset `bug_to_user_story-eval`, extraídos diretamente dos CSVs dos experimentos `bug_to_user_story_v1-054b9d07` e `bug_to_user_story_v2-82771890` (juízes `judge_f1_score`, `judge_clarity`, `judge_precision` publicados em `carlos-sales/*`).
 
 | Métrica       | v1 (baseline) | v2 (otimizado) | Ganho absoluto | Comentário |
 |---------------|---------------|----------------|----------------|------------|
-| **F1-Score**  | `<PREENCHER>` | `<PREENCHER>`  | `<PREENCHER>`  | Balanço precision/recall contra a reference do dataset |
-| **Clarity**   | `<PREENCHER>` | `<PREENCHER>`  | `<PREENCHER>`  | Organização, linguagem, ausência de ambiguidade, concisão |
-| **Precision** | `<PREENCHER>` | `<PREENCHER>`  | `<PREENCHER>`  | Ausência de alucinações + foco + correção factual |
-| **Helpfulness** *(derivada)* | `<PREENCHER>` | `<PREENCHER>` | `<PREENCHER>` | Média de Clarity e Precision |
-| **Correctness** *(derivada)* | `<PREENCHER>` | `<PREENCHER>` | `<PREENCHER>` | Média de F1 e Precision |
-| **Status**    | ❌ Reprovado   | ✅ Aprovado    | —              | Critério de aprovação: todas as métricas ≥ 0.9 |
+| **F1-Score**  | 0.7992        | 0.9644         | **+0.1652**    | Balanço precision/recall contra a reference do dataset |
+| **Clarity**   | 0.9050        | 0.9773         | **+0.0723**    | Organização, linguagem, ausência de ambiguidade, concisão |
+| **Precision** | 0.9013        | 0.9953         | **+0.0940**    | Ausência de alucinações + foco + correção factual |
+| **Helpfulness** *(derivada)* | 0.9032 | 0.9863 | **+0.0831** | Média de Clarity e Precision |
+| **Correctness** *(derivada)* | 0.8503 | 0.9799 | **+0.1296** | Média de F1 e Precision |
+| **Status**    | ❌ Reprovado (F1 e Correctness < 0.9) | ✅ Aprovado (todas ≥ 0.9) | — | Critério de aprovação: todas as métricas ≥ 0.9 |
 
-**Critério de aprovação:** o prompt é considerado **APROVADO** quando a média de cada uma das cinco métricas sobre os 15 exemplos é ≥ 0.9.
 
 ---
 
